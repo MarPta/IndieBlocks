@@ -22,34 +22,30 @@ class ESP32_encoder {
     static uint8_t nextCounterIndex;
     uint8_t counterIndex;   //0-7
 
-    uint8_t gpioA;
-    uint8_t gpioB;
-    bool risingSensitive;
-    bool fallingSensitive;
-    bool reverse;
-    bool enableInterrupts;
-    int16_t incrPerRevolution;
-    int16_t debounceUs;
-    int32_t maxPeriodUs;    //encoder period limit separating zero result [us]
-    int32_t minPeriodUs;    //encoder period limit separating zero results [us]
-
-    int16_t PCNT_internal_count;   //variable to store PCNT coming data, PCNT is only int16_t
-    int32_t PCNT_count; //counter variable for external usage
-    float frequency;
+    int16_t PCNT_internal_count = 0;   //variable to store PCNT coming data, PCNT is only int16_t
+    int32_t PCNT_count = 0; //counter variable for external usage
+    float frequency = 0.0;
     static uint64_t gpioInputPinSel;
     struct CounterTimeData counterTimeData;
-    static void pcnt_init(pcnt_unit_t pcntUnit, uint8_t GPIO_A, uint8_t GPIO_B);
     static void IRAM_ATTR gpio_isr_handler(void* arg);
+    uint8_t gpioA;
+    uint8_t gpioB;
+
 public:
+    bool risingSensitive = true;
+    bool fallingSensitive = true;
+    bool reverse = false;
+    bool enableInterrupts = false;
+    int16_t debounceUs = 20;
+    int32_t maxPeriodUs = 100000;    //encoder period limit separating zero result [us]
+    int32_t minPeriodUs = 1000;    //encoder period limit separating zero results [us]
+
     ESP32_encoder(uint8_t aGpioA, uint8_t aGpioB);
     void init();
     int32_t getCount(); //return number of MotorEncoder increments with resolution 2 increments per revolution
     int16_t getDiff();
-    void clearCount(){
-        //clear encoder counter value to set zero position
-        PCNT_count = 0;
-    }
     float getFrequency(); //return motor axis frequency in [Hz]
+    void clearCount();
 };
 
 #endif //_ESP32_ENCODER_
