@@ -6,11 +6,10 @@
 #include "driver/touch_pad.h"
 #include "soc/rtc_periph.h"
 #include "ESP32_touchBar.h"
-#include "Arduino.h"
 
-const uint8_t ESP32_Touch::touchPads[] = {0, 3, 4, 5, 6, 7, 8};
+const uint8_t ESP32_touchBar::touchPads[] = {0, 3, 4, 5, 6, 7, 8};
 
-void ESP32_Touch::init() {
+void ESP32_touchBar::init() {
     // Initialize touch pad peripheral, it will start a timer to run a filter
     ESP_LOGI("Touch pad", "Initializing touch pad");
     touch_pad_init();
@@ -35,7 +34,7 @@ void ESP32_Touch::init() {
     }
 }
 
-uint16_t ESP32_Touch::read(uint8_t pin) {
+uint16_t ESP32_touchBar::read(uint8_t pin) {
     uint16_t touch_value;
     touch_pad_read_filtered((touch_pad_t)touchPads[pin], &touch_value);
     if(touch_value < staticValues[pin])
@@ -44,7 +43,7 @@ uint16_t ESP32_Touch::read(uint8_t pin) {
         return 0;
 }
 
-void ESP32_Touch::calibrate() {
+void ESP32_touchBar::calibrate() {
     uint16_t touch_value = 0;
     for(uint8_t i = 0; i < 7; ++i) {
         touch_pad_read_filtered((touch_pad_t)touchPads[i], &touch_value);
@@ -52,33 +51,39 @@ void ESP32_Touch::calibrate() {
     }
 }
 
-int32_t ESP32_Touch::getCount() {
-    static int8_t lastMaxPad = -1;   // -1 no last touch detected, 0-6 last touch pad
+int32_t ESP32_touchBar::getCount() {
+    static int8_t touchStartPad = -1;   // -1 no last touch detected, 0-6 last touch pad
     static int32_t count = 0;  // output encoder-equivalent variable
+    static int32_t touchStartCount = 0;
     uint16_t touch_value = 0;
     uint16_t maxValue = 0;
     uint8_t maxPad = 0;
 
-    ESP32_Touch::calibrate();
+    ESP32_touchBar::calibrate();
 
     // Read capacity values and store highest
     for(uint8_t i = 0; i < 7; ++i) {
-        touch_value = ESP32_Touch::read(i);
+        touch_value = ESP32_touchBar::read(i);
         if(touch_value > maxValue) {
             maxValue = touch_value;
             maxPad = i;
         }
     }
 
+    // When any touch detected
     if(maxValue > touchThreshold) {
-        if(maxPad > lastMaxPad && lastMaxPad != -1)
-            ++count;
-        else if(maxPad < lastMaxPad && lastMaxPad != -1)
-            --count;
-        lastMaxPad = maxPad;
+        // When it is the first touch of a move
+        if(touchStartPad == -1) {
+            touchStartPad = maxPad;
+            touchStartCount = count;
+        }
+        else {
+            count = touchStartCount + maxPad - touchStartPad;
+        }
+
     }
     else
-        lastMaxPad = -1;
+        touchStartPad = -1;
 
     return count;
 }
