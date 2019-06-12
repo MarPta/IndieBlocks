@@ -53,7 +53,6 @@ void ESP32_touchBar::calibrate() {
 
 int32_t ESP32_touchBar::getCount() {
     static int8_t touchStartPad = -1;   // -1 no last touch detected, 0-6 last touch pad
-    static int32_t count = 0;  // output encoder-equivalent variable
     static int32_t touchStartCount = 0;
     uint16_t touch_value = 0;
     uint16_t maxValue = 0;
@@ -80,10 +79,16 @@ int32_t ESP32_touchBar::getCount() {
         else {
             count = touchStartCount + maxPad - touchStartPad;
         }
-
     }
     else
         touchStartPad = -1;
 
     return count;
+}
+
+int32_t ESP32_touchBar::getDiff() {
+    int32_t prevCount = count;
+    count = getCount();
+
+    return count - prevCount;
 }
